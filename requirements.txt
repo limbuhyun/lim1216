@@ -1,5 +1,5 @@
 streamlit>=1.36
-pandas>=2.2
-numpy>=1.26
-matplotlib>=3.8
+pandas
+numpy
+matplotlib
 openai>=1.40

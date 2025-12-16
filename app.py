@@ -217,7 +217,8 @@ def ai_report(
     y_col: Optional[str],
     group_col: Optional[str],
     model_name: str,
-    api_key: str
+    api_key: str,
+    user_requirements: str
 ) -> Dict[str, Any]:
     """
     Sends ONLY masked sample rows + summary stats to the model.
@@ -227,6 +228,7 @@ def ai_report(
 
     payload = {
         "domain_context": domain_context,
+        "user_requirements": user_requirements,
         "dataset_shape": eda.get("shape"),
         "columns": eda.get("columns"),
         "numeric_describe": eda.get("numeric_describe"),
@@ -239,6 +241,7 @@ def ai_report(
 
     system = (
         "당신은 환경 데이터(기후/해양/대기/설문 포함) 분석을 총괄하는 수석 데이터 과학자입니다. "
+        "사용자가 제공한 user_requirements를 최우선으로 준수하세요. "
         "과장 금지. 관측/표본/측정의 한계를 명확히 지적하고, 통계적 함정(상관=인과, 계절성, 자기상관, 이상치, 결측, 표본 편향)을 반드시 언급하세요. "
         "출력은 반드시 주어진 JSON Schema를 만족해야 합니다. "
         "executive_report_md는 1~2페이지 분량의 마크다운 보고서로 작성하세요(제목/요약/핵심 결과/권고/한계)."
@@ -246,7 +249,8 @@ def ai_report(
 
     client = get_openai_client(api_key)
 
-    # Responses API usage (openai>=1.40 권장)
+    # 사용자 요구 사항 우선 준수
+ (openai>=1.40 권장)
     resp = client.responses.create(
         model=model_name,
         input=[
@@ -281,7 +285,19 @@ with st.sidebar:
         height=110
     )
 
-    st.subheader("OpenAI (선택)")
+    
+    st.subheader("요구 사항(분석/보고서 지시)")
+    user_requirements = st.text_area(
+        "요구 사항을 자유롭게 입력하세요 (예: 반드시 포함할 지표/표/그래프/해석 관점/톤)",
+        value=(
+            "- 결과는 정책 제언 중심으로\n"
+            "- 표본 편향/결측 처리/계절성/자기상관을 반드시 언급\n"
+            "- 핵심 그래프 3개(시계열, 월별 climatology, anomaly) 해석 포함\n"
+            "- 결론은 5줄 이내 요약 + 다음 액션 3개"
+        ),
+        height=170
+    )
+st.subheader("OpenAI (선택)")
     default_model = safe_get_secret("OPENAI_MODEL", "gpt-4.1-mini")
     model_name = st.text_input("모델", value=default_model)
     api_key = safe_get_secret("OPENAI_API_KEY", "")
@@ -458,7 +474,8 @@ else:
                     y_col=y_col,
                     group_col=group_col,
                     model_name=model_name,
-                    api_key=api_key
+                    api_key=api_key,
+                    user_requirements=user_requirements
                 )
 
             st.success("완료!")
